@@ -1,7 +1,7 @@
-use std::{io, process::exit, time::Instant};
+use std::{error::Error, fs::{self, File}, io::{self, Write}, path::Path, process::exit, time::Instant};
 use advent_of_code_2025::answers;
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     println!("Input the day to get the day's answer. (0 for all)");
 
     let stdin = io::stdin();
@@ -9,6 +9,10 @@ fn main() {
     let mut input = String::new();
 
     stdin.read_line(&mut input).expect("Should get a correct string");
+
+    if input.starts_with("make") {
+        return add_new_day(&input);
+    }
 
     let num: i32 = match input.trim_end().parse() {
         Ok(n) => n,
@@ -31,13 +35,15 @@ fn main() {
         let elapsed = now.elapsed();
         println!("Time taken for all days: {elapsed:?}");
     }
+
+    Ok(())
 }
 
 fn get_day(num: i32) {
     match num {
         1 => get_answer(1, answers::day01::answer),
         2 => get_answer(2, answers::day02::answer),
-        // 3 => get_answer(3, answers::day03::answer),
+        3 => get_answer(3, answers::day03::answer),
         // 4 => get_answer(4, answers::day04::answer),
         // 5 => get_answer(5, answers::day05::answer),
         // 6 => get_answer(6, answers::day06::answer),
@@ -59,4 +65,34 @@ fn get_answer(day: i32, answer: impl Fn() -> Result<(), io::Error>) {
         eprintln!("Error on Day {day}: {e}");
         exit(3);
     }
+}
+
+fn add_new_day(input: &str) -> Result<(), Box<dyn Error>> {
+    let input = input.strip_prefix("make").unwrap();
+    let day: i32 = input.trim().parse().expect("Should be a number after make");
+    let source = "./src/answers/base.rs";
+    let dest_day = "day".to_string()
+        + (if day < 10 { "0" } else { "" } )
+        + &day.to_string();
+    let destination = "./src/answers/".to_string() + &dest_day + ".rs";
+
+    if Path::new(&destination).exists() { 
+        panic!("Trying to overwrite existing day!!!");
+    }
+
+    println!("Copying from {source} to {destination}");
+
+    fs::copy(source, destination)?;
+
+    println!("Copy successful");
+
+    let mut ans = fs::OpenOptions::new()
+        .append(true)
+        .open("./src/answers.rs")?;
+
+    println!("Answers open to add mod");
+
+    ans.write_all(&("pub mod ".to_string() + &dest_day + ";").into_bytes())?;
+
+    return Ok(());
 }
