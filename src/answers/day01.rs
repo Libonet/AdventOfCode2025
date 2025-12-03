@@ -37,7 +37,7 @@ impl Rotation {
 type Input = Vec<Rotation>;
 
 pub fn answer() -> Result<(), io::Error>{
-    let contents = read_to_string("inputs/day1-1")?; // inputs/dayx-x
+    let contents = read_to_string("inputs/day01")?; // inputs/dayxx
     
     let input = parse(contents);
     
