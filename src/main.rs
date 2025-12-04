@@ -1,4 +1,4 @@
-use std::{error::Error, fs::{self, File}, io::{self, Write}, path::Path, process::exit, time::Instant};
+use std::{error::Error, fs, io::{self, Write}, path::Path, process::exit, time::Instant};
 use advent_of_code_2025::answers;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -94,5 +94,5 @@ fn add_new_day(input: &str) -> Result<(), Box<dyn Error>> {
 
     ans.write_all(&("pub mod ".to_string() + &dest_day + ";").into_bytes())?;
 
-    return Ok(());
+    Ok(())
 }

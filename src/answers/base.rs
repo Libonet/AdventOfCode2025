@@ -4,7 +4,7 @@ use std::time::Instant;
 type Input = String;
 
 pub fn answer() -> Result<(), io::Error>{
-    let contents = read_to_string("")?; // inputs/dayx-x
+    let contents = read_to_string("")?; // inputs/dayxx
     
     let input = parse(contents);
     
