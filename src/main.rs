@@ -44,7 +44,7 @@ fn get_day(num: i32) {
         1 => get_answer(1, answers::day01::answer),
         2 => get_answer(2, answers::day02::answer),
         3 => get_answer(3, answers::day03::answer),
-        // 4 => get_answer(4, answers::day04::answer),
+        4 => get_answer(4, answers::day04::answer),
         // 5 => get_answer(5, answers::day05::answer),
         // 6 => get_answer(6, answers::day06::answer),
         // 7 => get_answer(7, answers::day07::answer),
