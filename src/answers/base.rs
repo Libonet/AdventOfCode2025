@@ -40,3 +40,19 @@ fn part2(input: &Input) -> i32 {
 
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_part1() {
+        let contents = "";
+
+        let input = parse(contents.to_string());
+
+        let res = part1(&input);
+
+        assert_eq!(res, -1);
+    }
+}
