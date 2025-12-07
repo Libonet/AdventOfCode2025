@@ -28,10 +28,7 @@ pub fn answer() -> Result<(), io::Error>{
 }
 
 fn parse(contents: String) -> Input {
-    let cols = contents.find('\n').unwrap();
-    let values = contents.replace("\n", "").chars().collect();
-    
-    (values, cols).try_into().unwrap()
+    contents.try_into().unwrap()
 }
 
 fn part1(input: &mut Input) -> usize {

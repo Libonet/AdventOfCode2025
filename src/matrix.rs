@@ -1,4 +1,5 @@
-use std::{error::Error as ErrorTrait, fmt::Display, ops::{Add, AddAssign, Index, IndexMut, Sub, SubAssign}, slice::{Iter, IterMut}};
+#![allow(unused_imports)]
+use std::{cmp::Reverse, collections::{BinaryHeap, VecDeque}, error::Error as ErrorTrait, fmt::Display, ops::{Add, AddAssign, Index, IndexMut, Sub, SubAssign}, slice::{Iter, IterMut}};
 
 
 #[derive(Debug)]
@@ -77,6 +78,48 @@ impl<T> Matrix<T> {
     }
 }
 
+impl TryFrom<String> for Matrix<char> {
+    type Error = &'static str;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let cols = match value.find('\n') {
+            Some(pos) => pos,
+            None => return Err("Couldn't split string into rows"),
+        };
+        let values: Vec<char> = value.replace("\n", "").chars().collect();
+        
+        match (values, cols).try_into() {
+            Ok(matrix) => Ok(matrix),
+            Err(err) => match err {
+                Error::InvalidSize => Err("Couldn't create a matrix from a vector with this size"),
+            },
+        }
+    }
+}
+
+// impl<T> Matrix<T> {
+//     pub fn astar(
+//         &self,
+//         start: Pos,
+//         target: Pos,
+//         move_options: impl Fn(&Self, &Pos) -> Vec<(Reverse<i64>, Pos)>,
+//         heuristic: impl Fn(&Pos, &Pos) -> i64,
+//     ) -> (Vec<Pos>, i64) {
+//         let mut curr = start;
+//         let mut visited = Matrix::with_default(self.rows, self.cols, false);
+//         let mut path_cost = 0;
+//         let mut path = Vec::new();
+//
+//         let mut next_moves = BinaryHeap::with_capacity(heuristic(&start, &target) as usize);
+//         next_moves.extend(move_options(self, &start));
+//         while !next_moves.is_empty() {
+//
+//         }
+//
+//         (path, path_cost)
+//     }
+// }
+
 impl<T: Default> Matrix<T> {
     pub fn new(rows: usize, cols: usize) -> Self {
         let mut vals = Vec::with_capacity(rows * cols);
@@ -148,7 +191,7 @@ impl<T: Clone + Display> Display for Matrix<T> {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Pos(pub i32, pub i32);
 
 impl Pos {
