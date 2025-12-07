@@ -1,5 +1,5 @@
 #![allow(unused_imports)]
-use std::{cmp::Reverse, collections::{BinaryHeap, VecDeque}, error::Error as ErrorTrait, fmt::Display, ops::{Add, AddAssign, Index, IndexMut, Sub, SubAssign}, slice::{Iter, IterMut}};
+use std::{cmp::Reverse, collections::{BinaryHeap, HashSet, VecDeque}, error::Error as ErrorTrait, fmt::Display, ops::{Add, AddAssign, Index, IndexMut, Sub, SubAssign}, slice::{Iter, IterMut}};
 
 
 #[derive(Debug)]
@@ -97,28 +97,37 @@ impl TryFrom<String> for Matrix<char> {
     }
 }
 
-// impl<T> Matrix<T> {
-//     pub fn astar(
-//         &self,
-//         start: Pos,
-//         target: Pos,
-//         move_options: impl Fn(&Self, &Pos) -> Vec<(Reverse<i64>, Pos)>,
-//         heuristic: impl Fn(&Pos, &Pos) -> i64,
-//     ) -> (Vec<Pos>, i64) {
-//         let mut curr = start;
-//         let mut visited = Matrix::with_default(self.rows, self.cols, false);
-//         let mut path_cost = 0;
-//         let mut path = Vec::new();
-//
-//         let mut next_moves = BinaryHeap::with_capacity(heuristic(&start, &target) as usize);
-//         next_moves.extend(move_options(self, &start));
-//         while !next_moves.is_empty() {
-//
-//         }
-//
-//         (path, path_cost)
-//     }
-// }
+impl<T> Matrix<T> {
+    pub fn astar(
+        &self,
+        start: Pos,
+        target: Pos,
+        mut move_options: impl FnMut(&Self, &Pos) -> Vec<(Reverse<i64>, Pos)>,
+        heuristic: impl Fn(&Pos, &Pos) -> i64,
+    ) -> (Vec<Pos>, i64) {
+        let mut visited = HashSet::new();
+        visited.insert(start);
+
+        let mut next_moves = BinaryHeap::with_capacity(heuristic(&start, &target) as usize);
+        next_moves.extend(
+            move_options(self, &start).into_iter()
+                .map(|(cost, pos)| (Reverse(cost.0 + heuristic(&pos, &target)), pos, vec![start]))
+        );
+
+        while let Some((cost, pos, mut curr_path)) = next_moves.pop() {
+            if pos == target { return (curr_path, cost.0); }
+            if !visited.insert(pos) { continue; }
+
+            curr_path.push(pos);
+            next_moves.extend(
+                move_options(self, &pos).into_iter()
+                    .map(|(move_cost, pos)| (Reverse(move_cost.0 + cost.0 + heuristic(&pos, &target)), pos, curr_path.clone()))
+            );
+        }
+
+        (Vec::new(), -1)
+    }
+}
 
 impl<T: Default> Matrix<T> {
     pub fn new(rows: usize, cols: usize) -> Self {
@@ -189,6 +198,10 @@ impl<T: Clone + Display> Display for Matrix<T> {
 
         Ok(())
     }
+}
+
+pub fn manhattan_distance(from: &Pos, to: &Pos) -> i64 {
+    to.0.abs_diff(from.0) as i64 + to.1.abs_diff(from.1) as i64
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -287,3 +300,69 @@ impl Iterator for PosIter {
 
 // #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 // pub struct UPos(pub u32, pub u32);
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_astar_2024_18_part1_example() {
+        let coordinates = "\
+5,4
+4,2
+4,5
+3,0
+2,1
+6,3
+2,4
+1,5
+0,6
+3,3
+2,6
+5,1
+1,2
+5,5
+2,5
+6,5
+1,4
+0,4
+6,4
+1,1
+6,1
+1,0
+0,5
+1,6
+2,0";
+
+        let mut matrix = Matrix::with_default(7, 7, '.');
+        let corrupted = 12;
+        for coord in coordinates.lines().take(corrupted) {
+            let mut pair = coord.split(',');
+            let col = pair.next().unwrap().parse().unwrap();
+            let row = pair.next().unwrap().parse().unwrap();
+
+            matrix[Pos(row, col)] = '#';
+        }
+
+        let (path, _) = matrix.astar(
+            Pos(0,0), 
+            Pos(6,6), 
+            |mat, pos| {
+                let pos = *pos;
+                vec![
+                    (Reverse(1), pos + Pos(0, 1)),
+                    (Reverse(1), pos + Pos(0,-1)),
+                    (Reverse(1), pos + Pos( 1,0)),
+                    (Reverse(1), pos + Pos(-1,0)),
+                ].into_iter().filter(|pair| {
+                        mat.get(pair.1).is_some_and(|chr| *chr!='#')
+                    })
+                    .collect()
+            },
+            manhattan_distance,
+        );
+
+        assert_eq!(path.len(), 22);
+    }
+}
