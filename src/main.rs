@@ -2,25 +2,40 @@ use std::{error::Error, fs, io::{self, Write}, path::Path, process::exit, time::
 use advent_of_code_2025::answers;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    println!("Input the day to get the day's answer. (0 for all)");
+    let args: Vec<String> = std::env::args().collect();
 
-    let stdin = io::stdin();
-
-    let mut input = String::new();
-
-    stdin.read_line(&mut input).expect("Should get a correct string");
-
-    if input.starts_with("make") {
-        return add_new_day(&input);
-    }
-
-    let num: i32 = match input.trim_end().parse() {
-        Ok(n) => n,
-        Err(e) => {
-            eprintln!("Error: {e}");
+    let num: i32 = if args.len() == 3 {
+        if args[1] == "-d" || args[1] == "--day" {
+            args[2].parse::<i32>()?
+        } else if args[1] == "-m" || args[1] == "--make" {
+            return add_new_day(args[2].parse()?);
+        } else {
             exit(1);
         }
+    } else {
+        println!("Input the day to get the day's answer. (0 for all)");
+
+        let stdin = io::stdin();
+
+        let mut input = String::new();
+
+        stdin.read_line(&mut input).expect("Should get a correct string");
+
+        if input.starts_with("make") {
+            let input = input.strip_prefix("make").unwrap();
+            let day: i32 = input.trim().parse().expect("Should be a number after make");
+            return add_new_day(day);
+        }
+
+        match input.trim_end().parse() {
+            Ok(n) => n,
+            Err(e) => {
+                eprintln!("Error: {e}");
+                exit(1);
+            }
+        }
     };
+
 
     if num != 0 {
         let now = Instant::now();
@@ -49,7 +64,7 @@ fn get_day(num: i32) {
         6 => get_answer(6, answers::day06::answer),
         7 => get_answer(7, answers::day07::answer),
         8 => get_answer(8, answers::day08::answer),
-        // 9 => get_answer(9, answers::day09::answer),
+        9 => get_answer(9, answers::day09::answer),
         // 10 => get_answer(10, answers::day10::answer),
         // 11 => get_answer(11, answers::day11::answer),
         // 12 => get_answer(12, answers::day12::answer),
@@ -67,9 +82,7 @@ fn get_answer(day: i32, answer: impl Fn() -> Result<(), io::Error>) {
     }
 }
 
-fn add_new_day(input: &str) -> Result<(), Box<dyn Error>> {
-    let input = input.strip_prefix("make").unwrap();
-    let day: i32 = input.trim().parse().expect("Should be a number after make");
+fn add_new_day(day: i32) -> Result<(), Box<dyn Error>> {
     let source = "./src/answers/base.rs";
     let dest_day = "day".to_string()
         + (if day < 10 { "0" } else { "" } )
