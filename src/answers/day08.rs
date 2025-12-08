@@ -1,5 +1,5 @@
 use std::cmp::Reverse;
-use std::collections::{BinaryHeap, HashSet};
+use std::collections::{BinaryHeap};
 use std::{fs::read_to_string, io};
 use std::time::Instant;
 
@@ -97,9 +97,9 @@ fn solve_part1(mut input: Input, edge_target: usize, circuits: usize) -> usize {
         }
     }
 
-    components.sort_by_key(|a| Reverse(a.len()));
+    components.sort_by(|a,b| Reverse(a).cmp(&Reverse(b)));
 
-    components.iter().take(circuits).map(|a| a.len()).reduce(|acc, len| acc * len).unwrap_or(1)
+    components.into_iter().take(circuits).reduce(|acc, len| acc * len).unwrap_or(1)
 }
 
 fn part2(mut input: Input) -> i64 {
@@ -114,7 +114,7 @@ fn part2(mut input: Input) -> i64 {
 
         merge_comp(&mut input, id1, id2, &mut components);
 
-        if components[0].len() == input.len() {
+        if components[0] == input.len() {
             return input[id1].x * input[id2].x;
         }
     }
@@ -142,7 +142,7 @@ fn merge_comp(
     input: &mut Input,
     id1: usize,
     id2: usize,
-    components: &mut Vec<HashSet<usize>>,
+    components: &mut Vec<usize>,
 ) {
     match (input[id1].component, input[id2].component) {
         (None, None) => {
@@ -152,37 +152,39 @@ fn merge_comp(
             input[id2].component = Some(component_count);
 
             // println!("New component. Id = {component_count}");
-            let mut set = HashSet::new();
-            set.insert(id1);
-            set.insert(id2);
-            components.push(set);
+            components.push(2);
         },
         (Some(c1), None) => {
             // println!("1 component (id: {c1}). Adding node {id2}");
             input[id2].component = Some(c1);
-            components[c1].insert(id2);
+            components[c1] += 1;
         },
         (None, Some(c2)) => {
             // println!("1 component (id: {c2}). Adding node {id1}");
             input[id1].component = Some(c2);
-            components[c2].insert(id1);
+            components[c2] += 1;
         },
         (Some(c1), Some(c2)) => {
             if c1 != c2 {
-                // println!("2 components! merging {c1} and {c2}");
-                // fix c2 components
-                for &item_id in components[c2].iter() {
-                    input[item_id].component = Some(c1);
-                }
-                components[c1] = components[c1].union(&components[c2]).copied().collect();
-                components.remove(c2);
+                let max = c1.max(c2);
+                let min = c1.min(c2);
 
-                // fix the next components
-                for (i,component) in components.iter().enumerate().skip(c2) {
-                    for &item_id in component.iter() {
-                        input[item_id].component = Some(i);
-                    }
+                // println!("2 components! Merging {c1} and {c2}");
+                // println!("Components before: {components:#?}");
+                components[min] += components[max];
+                components.remove(max);
+
+                for node in input.iter_mut() {
+                    // print!("maping from {:?}", node.component);
+                    node.component = node.component.map(|c| {
+                        if c == max { min }
+                        else if c > max { c-1 }
+                        else { c }
+                    });
+                    // println!(" to {:?}", node.component);
                 }
+                
+                // println!("Components after: {components:#?}");
             } else {
                 // println!("Redundant edge! Both in component {c1}");
             }
