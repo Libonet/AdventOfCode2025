@@ -32,8 +32,8 @@ fn parse(contents: String) -> Input {
     contents.lines()
         .map(|line| {
             let mut split = line.split(',');
-            let x = split.next().unwrap().parse().unwrap();
             let y = split.next().unwrap().parse().unwrap();
+            let x = split.next().unwrap().parse().unwrap();
             Pos(x,y)
         })
         .collect()
@@ -86,50 +86,9 @@ impl PartialOrd for Edge {
 }
 
 fn part2(input: &Input) -> i64 {
-    let mut edges = BinaryHeap::new();
-
-    let mut i = 0;
-    let len = input.len();
-    while i < len {
-        let mut idx = i+1;
-        while idx < len {
-            if !empty_area(input, i, idx) { 
-                idx += 1;
-                continue;
-            }
-            edges.push(Edge { id1: i, id2: idx, dis: area(&input[i], &input[idx]) });
-            idx += 1;
-        }
-
-        i += 1;
-    }
-
-    let max = edges.pop().unwrap();
-
-    // println!("max area node pair: {max:#?}");
-    // println!("node {}: {}", max.id1, input[max.id1]);
-    // println!("node {}: {}", max.id2, input[max.id2]);
-
-    max.dis
+    
 }
 
-fn empty_area(input: &Input, id1: usize, id2: usize) -> bool {
-    let Pos(x1,y1) = input[id1];
-    let Pos(x2,y2) = input[id2];
-
-    let min_x = x1.min(x2);
-    let max_x = x1.max(x2);
-    let min_y = y1.min(y2);
-    let max_y = y1.max(y2);
-    for node in input {
-        if (min_x+1..max_x).contains(&node.0)
-            && (min_y+1..max_y).contains(&node.1) {
-            return false;
-        }
-    }
-
-    true
-}
 
 #[cfg(test)]
 mod tests {
@@ -172,4 +131,39 @@ mod tests {
 
         assert_eq!(res, 24);
     }
+
+    #[test]
+    fn test_part2_strange_shape() {
+        let contents = "\
+7,0
+11,0
+11,7
+9,7
+9,6
+2,6
+2,5
+9,5
+9,3
+2,3
+2,2
+7,2";
+
+        let input = parse(contents.to_string());
+
+        let res = part2(&input);
+
+        assert_eq!(res, 24);
+    }
+
+/*
+.......#XXX#..
+.......XXXXX..
+..#XXXX#XXXX..
+..#XXXXXX#XX..
+.........XXX..
+..#XXXXXX#XX..
+..#XXXXXX#XX..
+.........#X#..
+..............
+*/
 }
