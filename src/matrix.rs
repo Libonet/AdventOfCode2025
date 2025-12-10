@@ -139,13 +139,38 @@ impl<T: Default> Matrix<T> {
     }
 }
 
-impl <T: Clone> Matrix<T> {
+impl <T: Clone + PartialEq> Matrix<T> {
     pub fn with_default(rows: usize, cols: usize, def: T) -> Self {
         let mut vals = Vec::with_capacity(rows * cols);
         for _idx in 0..rows*cols {
             vals.push(def.clone());
         }
         Self { vals, rows, cols }
+    }
+
+    pub fn sq_floodfill(&mut self, start: Pos, remove: T, fill: T) {
+        let mov_opts = [
+            Pos(0,-1),
+            Pos(0, 1),
+            Pos(-1,0),
+            Pos( 1,0),
+        ];
+
+        let mut visited = Matrix::with_default(self.rows, self.cols, false);
+
+        let mut queue = Vec::new();
+        queue.extend(mov_opts.map(|offset| start + offset));
+
+        while let Some(pos) = queue.pop() {
+            if let Some(visit) = visited.get(pos) {
+                if *visit { continue; } else { visited[pos] = true }
+
+                if self[pos] == remove {
+                    self[pos] = fill.clone();
+                    queue.extend(mov_opts.map(|offset| pos + offset));
+                }
+            }
+        }
     }
 }
 

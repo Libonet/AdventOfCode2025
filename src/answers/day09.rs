@@ -1,8 +1,8 @@
-use std::collections::BinaryHeap;
+use std::collections::{BTreeMap, BinaryHeap, HashMap};
 use std::{fs::read_to_string, io};
 use std::time::Instant;
 
-use crate::matrix::{Pos};
+use crate::matrix::{Matrix, Pos};
 
 type Input = Vec<Pos>;
 
@@ -86,7 +86,84 @@ impl PartialOrd for Edge {
 }
 
 fn part2(input: &Input) -> i64 {
-    
+    let mut map = HashMap::new();
+    for i in 0..input.len()-1 {
+        for j in i+1..input.len() {
+            let area = get_rect_area(input[i], input[j]);
+            map.insert((i,j), area);
+        }
+    }
+
+    let mut kvp = map.into_iter().collect::<Vec<((usize, usize), i64)>>();
+    kvp.sort_by_key(|(_, area)| *area);
+    kvp.reverse();
+
+    let mut max_area = 0;
+
+    for ((a,b), area) in kvp {
+        let region = Region::from_two_points(&input[a], &input[b]);
+        let mut found_area = true;
+
+        for point in input {
+            if region.encloses(*point) {
+                found_area = false;
+                break;
+            }
+        }
+
+        // also check midpoints
+        if found_area {
+            for c in 0..input.len()-1 {
+                if region.encloses_line_midpoint(input[c], input[c+1]) {
+                    found_area = false;
+                    break;
+                }
+            }
+
+            if region.encloses_line_midpoint(input[0], *input.last().unwrap()) {
+                found_area = false;
+            }
+        }
+
+        if found_area {
+            max_area = area;
+            break;
+        }
+    }
+
+    max_area
+}
+
+fn get_rect_area(from: Pos, other: Pos) -> i64 {
+    let width = 1 + from.0.abs_diff(other.0) as i64;
+    let height = 1 + from.1.abs_diff(other.1) as i64;
+
+    width * height
+}
+
+struct Region {
+    min: Pos,
+    max: Pos,
+}
+
+impl Region {
+    pub fn from_two_points(p1: &Pos, p2: &Pos) -> Region {
+        let minx = p1.0.min(p2.0);
+        let miny = p1.1.min(p2.1);
+        let maxx = p1.0.max(p2.0);
+        let maxy = p1.1.max(p2.1);
+        Region { min: Pos(minx, miny), max: Pos(maxx, maxy) }
+    }
+
+    pub fn encloses(&self, point: Pos) -> bool {
+        point.0 > self.min.0 && point.0 < self.max.0 && point.1 > self.min.1 && point.1 < self.max.1
+    }
+
+    pub fn encloses_line_midpoint(&self, start: Pos, end: Pos) -> bool {
+        let mid = Pos((start.0 + end.0) / 2, (start.1 + end.1) / 2);
+
+        self.encloses(mid)
+    }
 }
 
 
