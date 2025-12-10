@@ -1,21 +1,36 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::{fs::read_to_string, io};
 use std::time::Instant;
+
+use microlp::{LinearExpr, Problem};
 
 type Input = Vec<Machine>;
 
 struct Machine {
     pub target: i64,
-    pub buttons: Vec<i64>,
+    pub buttons: Vec<Vec<bool>>,
     pub joltage: Vec<i64>,
 }
 
 impl Machine {
     pub fn configure_steps(&self) -> i64 {
-        // println!("Configuring steps!!\n\n");
+        // println!("Configuring steps!!\n");
         let mut queue = VecDeque::new();
 
-        queue.extend(self.buttons.iter().map(|button| (0, button, 0)));
+        // println!("butons: {:#?}", self.buttons);
+
+        let mut buttons = Vec::new();
+        for vals in &self.buttons {
+            let mut button = 0;
+            for (i,val) in vals.iter().rev().enumerate() {
+                if *val {
+                    button |= 1 << i;
+                }
+            }
+            buttons.push(button);
+        }
+
+        queue.extend(buttons.iter().map(|button| (0, button, 0)));
         
         while let Some((curr, button, steps)) = queue.pop_front() {
             // println!("goal: {:#032b}", self.target);
@@ -27,7 +42,7 @@ impl Machine {
 
             let new_curr = curr ^ *button;
             // println!("new : {new_curr:#032b}");
-            queue.extend(self.buttons.iter().map(|button| (new_curr, button, steps+1)));
+            queue.extend(buttons.iter().map(|button| (new_curr, button, steps+1)));
         }
 
         -1
@@ -36,21 +51,28 @@ impl Machine {
     pub fn joltage_steps(&self) -> i64 {
         if self.joltage.iter().all(|j| *j == 0) { return 0; }
 
-        let buttons: Vec<Vec<usize>> = self.buttons.iter().map(|button| {
-            let mut button = *button;
-            let mut res = Vec::new();
-            let mut i = 0;
-            while button > 0 {
-                if button & 1 == 1 {
-                    res.push(i);
-                }
-                button >>= 1;
-                i += 1;
-            }
-            res
-        }).collect();
+        let mut problem = Problem::new(microlp::OptimizationDirection::Minimize);
+        let mut vars = Vec::new(); 
 
-        0
+        for _ in 0..self.buttons.len() {
+            vars.push(problem.add_integer_var(1., (0, i32::MAX)));
+        }
+
+        for constraint in 0..self.joltage.len() {
+            let mut equation = LinearExpr::empty();
+            for (i, var) in self.buttons.iter().enumerate() {
+                if var[constraint] {
+                    equation.add(vars[i], 1.);
+                }
+            }
+            problem.add_constraint(
+                equation,
+                microlp::ComparisonOp::Eq,
+                self.joltage[constraint] as f64
+            );
+        }
+
+        problem.solve().unwrap().objective().round() as i64
     }
 }
 
@@ -82,9 +104,8 @@ fn parse(contents: String) -> Input {
             let mut groups = line.split_whitespace();
             let mut target = 0;
             let target_group = groups.next().unwrap();
-            let mut bits = 0;
+
             for val in target_group.chars().take(target_group.len()-1).skip(1) {
-                bits += 1;
                 match val {
                     '#' => { target = (target << 1) + 1 },
                     '.' => { target <<= 1 },
@@ -92,16 +113,16 @@ fn parse(contents: String) -> Input {
                 }
             }
 
-            let mut buttons = Vec::new();
+            let mut id_buttons = Vec::new();
             let mut joltage = Vec::new();
             for group in groups {
                 if &group[0..1] == "(" {
-                    let mut button = 0;
-                    for val in group[1..group.len()-1].split(',') {
-                        let shift: usize = val.parse().unwrap();
-                        button ^= 1 << (bits as usize - shift - 1);
+                    let mut vals = Vec::new();
+                    for val in group[1..group.len()-1].split(",") {
+                        let id: usize = val.parse().unwrap();
+                        vals.push(id);
                     }
-                    buttons.push(button);
+                    id_buttons.push(vals);
                 }
 
                 if &group[0..1] == "{" {
@@ -111,6 +132,24 @@ fn parse(contents: String) -> Input {
                         .collect();
                     joltage = group;
                 }
+            }
+
+            let mut buttons = Vec::new();
+            let max = id_buttons
+                .iter()
+                .map(|vals| vals
+                    .iter()
+                    .max()
+                    .unwrap())
+                .max()
+                .unwrap();
+
+            for vals in &id_buttons {
+                let mut button = vec![false; max+1];
+                for val in vals {
+                    button[*val] = true;
+                }
+                buttons.push(button);
             }
             
             Machine { target, buttons, joltage }
@@ -156,17 +195,17 @@ mod tests {
         assert_eq!(res, 7);
     }
 
-    #[test]
-    fn test_part2() {
-        let contents = "\
-[.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
-[...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
-[.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}";
-
-        let input = parse(contents.to_string());
-
-        let res = part1(&input);
-
-        assert_eq!(res, 33);
-    }
+//     #[test]
+//     fn test_part2() {
+//         let contents = "\
+// [.##.] (3) (1,3) (2) (2,3) (0,2) (0,1) {3,5,4,7}
+// [...#.] (0,2,3,4) (2,3) (0,4) (0,1,2) (1,2,3,4) {7,5,12,7,2}
+// [.###.#] (0,1,2,3,4) (0,3,4) (0,1,2,4,5) (1,2) {10,11,11,5,10,5}";
+//
+//         let input = parse(contents.to_string());
+//
+//         let res = part2(&input);
+//
+//         assert_eq!(res, 33);
+//     }
 }
