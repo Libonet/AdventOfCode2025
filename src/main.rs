@@ -66,7 +66,7 @@ fn get_day(num: i32) {
         8 => get_answer(8, answers::day08::answer),
         9 => get_answer(9, answers::day09::answer),
         10 => get_answer(10, answers::day10::answer),
-        // 11 => get_answer(11, answers::day11::answer),
+        11 => get_answer(11, answers::day11::answer),
         // 12 => get_answer(12, answers::day12::answer),
         _ => {
             eprintln!("Error: Day should exist");
