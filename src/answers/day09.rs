@@ -1,8 +1,8 @@
-use std::collections::{BTreeMap, BinaryHeap, HashMap};
+use std::collections::{BinaryHeap, HashMap};
 use std::{fs::read_to_string, io};
 use std::time::Instant;
 
-use crate::matrix::{Matrix, Pos};
+use crate::matrix::{Pos};
 
 type Input = Vec<Pos>;
 

@@ -44,7 +44,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("Time taken for day {num}: {elapsed:?}");
     } else {
         let now = Instant::now();
-        for day in 1..=25 {
+        for day in 1..=12 {
+            println!("\nDay {}\n", day);
             get_day(day);
         }
         let elapsed = now.elapsed();
@@ -67,7 +68,7 @@ fn get_day(num: i32) {
         9 => get_answer(9, answers::day09::answer),
         10 => get_answer(10, answers::day10::answer),
         11 => get_answer(11, answers::day11::answer),
-        // 12 => get_answer(12, answers::day12::answer),
+        12 => get_answer(12, answers::day12::answer),
         _ => {
             eprintln!("Error: Day should exist");
             exit(2);
